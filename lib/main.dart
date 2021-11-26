@@ -6,19 +6,6 @@ void main() {
   runApp(const MyApp());
 }
 
-void main2() {
-  runApp(
-    MaterialApp(
-      title: 'FriendlyChat',
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('FriendlyChat'),
-        ),
-      ),
-    ),
-  );
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
