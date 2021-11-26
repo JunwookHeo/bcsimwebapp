@@ -81,6 +81,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_treeview:
+    dependency: "direct main"
+    description:
+      name: flutter_treeview
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.6+1"
   http:
     dependency: "direct main"
     description:
@@ -170,6 +177,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.4.2"
+  tree_view:
+    dependency: "direct main"
+    description:
+      name: tree_view
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.6"
   typed_data:
     dependency: transitive
     description:

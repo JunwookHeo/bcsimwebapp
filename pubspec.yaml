@@ -32,6 +32,7 @@ dependencies:
 
   http: ^0.13.4
   web_socket_channel: ^2.1.0
+  tree_view: ^0.0.6
 
 
   # The following adds the Cupertino Icons font to your application.
