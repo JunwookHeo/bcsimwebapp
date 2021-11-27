@@ -1,5 +1,3 @@
-
-
 class NodeInfo {
   final int ID;
   final int TotalBlocks;
@@ -25,7 +23,7 @@ class NodeInfo {
     this.QueryFrom = 0,
     this.QueryTo = 0,
     this.Timestamp = "",
-  }) ;
+  });
 
   factory NodeInfo.fromJson(Map<String, dynamic> json) {
     return NodeInfo(

@@ -110,11 +110,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _sendStart(){
+  void _sendStart() {
     _sendMessage(true);
   }
 
-  void _sendStop(){
+  void _sendStop() {
     _sendMessage(false);
   }
 

@@ -21,9 +21,9 @@ class NodeViewPage extends StatefulWidget {
 class _NodeViewState extends State<NodeViewPage> {
   late final WebSocketChannel? channel;
   late TooltipBehavior _tooltipBehavior;
+  late NodeInfo _lastNode = NodeInfo();
 
-  List<_ChartData> chartData = <_ChartData>[
-  ];
+  List<_ChartData> chartData = <_ChartData>[];
   int count = 0;
   ChartSeriesController? _chartSeriesController;
 
@@ -54,23 +54,53 @@ class _NodeViewState extends State<NodeViewPage> {
               stream: channel!.stream,
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Text("no data");
+                  return showNodeInfo(_lastNode); //Text("no data");
                 } else {
                   NodeInfo nodeInfo = NodeInfo.fromJson(json.decode('${snapshot.data}'));
+                  print(nodeInfo.Size);
                   _updateDataSource(nodeInfo);
-                  return Text(nodeInfo.Timestamp);
+                  _lastNode = nodeInfo;
+                  return showNodeInfo(nodeInfo);// Text(_lastNode.Timestamp);
                   //return Text(snapshot.hasData ? '${snapshot.data}' : '');
                 }
               },
             ),
+            const SizedBox(height: 24),
             SfCartesianChart(
+                margin: const EdgeInsets.all(50),
+                title: ChartTitle(
+                    text: 'Blockchain Data Size',
+                    //backgroundColor: Colors.lightGreen,
+                    //borderColor: Colors.blue,
+                    borderWidth: 2,
+                    // Aligns the chart title to left
+                    alignment: ChartAlignment.center,
+                    textStyle: const TextStyle(
+                      color: Colors.black,
+                      fontFamily: 'Roboto',
+                      fontStyle: FontStyle.italic,
+                      fontSize: 20,
+                    )
+                ),
                 plotAreaBorderWidth: 0,
-                primaryXAxis:
-                  DateTimeAxis(dateFormat: DateFormat.Hms(), majorGridLines: const MajorGridLines(width: 0)),
+                primaryXAxis: DateTimeAxis(
+                    dateFormat: DateFormat.Hms(),
+                    majorGridLines: const MajorGridLines(width: 0)),
                 primaryYAxis: NumericAxis(
+                    title: AxisTitle(
+                        text: 'Size[Byte]',
+                        textStyle: const TextStyle(
+                            color: Colors.black,
+                            fontFamily: 'Roboto',
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w300
+                        )
+                    ),
                     axisLine: const AxisLine(width: 0),
                     majorTickLines: const MajorTickLines(size: 0)),
-                series: <LineSeries<_ChartData, DateTime>>[
+                //series: <LineSeries<_ChartData, DateTime>>[
+            series: <CartesianSeries>[
                   LineSeries<_ChartData, DateTime>(
                     onRendererCreated: (ChartSeriesController controller) {
                       _chartSeriesController = controller;
@@ -88,6 +118,20 @@ class _NodeViewState extends State<NodeViewPage> {
     );
   }
 
+  Row showNodeInfo(NodeInfo ni) {
+    return (Row(
+      children: <Widget>[
+        const Expanded(flex: 1, child: Icon(Icons.add_chart)),
+        Expanded(flex: 1, child: Text("# Blocks : " + ni.Blocks.toString())),
+        Expanded(flex: 1, child: Text("# Transactions : " + ni.Transactions.toString())),
+        Expanded(flex: 1, child: Text("Size : " + ni.Size.toString() + "[Byte]")),
+        Expanded(flex: 1, child: Text("Total Query : " + ni.TotalQuery.toString())),
+        Expanded(flex: 1, child: Text("Query To : " + ni.QueryTo.toString())),
+        Expanded(flex: 1, child: Text("Query From : " + ni.QueryFrom.toString())),
+      ],
+    ));
+  }
+
   void _sendMessage() {
     channel!.sink.add("test");
   }
@@ -99,19 +143,19 @@ class _NodeViewState extends State<NodeViewPage> {
   }
 
   void _updateDataSource(NodeInfo ni) {
-      chartData.add(_ChartData.fromNodeInfo(ni));
-      if (chartData.length == 200) {
-        chartData.removeAt(0);
-        _chartSeriesController?.updateDataSource(
-          addedDataIndexes: <int>[chartData.length - 1],
-          removedDataIndexes: <int>[0],
-        );
-      } else {
-        _chartSeriesController?.updateDataSource(
-          addedDataIndexes: <int>[chartData.length - 1],
-        );
-      }
-      count = count + 1;
+    chartData.add(_ChartData.fromNodeInfo(_lastNode, ni));
+    if (chartData.length == 200) {
+      chartData.removeAt(0);
+      _chartSeriesController?.updateDataSource(
+        addedDataIndexes: <int>[chartData.length - 1],
+        removedDataIndexes: <int>[0],
+      );
+    } else {
+      _chartSeriesController?.updateDataSource(
+        addedDataIndexes: <int>[chartData.length - 1],
+      );
+    }
+    count = count + 1;
   }
 
   ///Get the random data
@@ -123,15 +167,19 @@ class _NodeViewState extends State<NodeViewPage> {
 
 class _ChartData {
   _ChartData({
-    DateTime ? timestamp,
+    DateTime? timestamp,
     this.size = 0,
-  }): this.timestamp = timestamp ?? DateTime.now();
+    this.networkoverhead = 0,
+  }) : this.timestamp = timestamp ?? DateTime.now();
 
   final DateTime timestamp;
   final num size;
+  final num networkoverhead;
 
-  factory _ChartData.fromNodeInfo(NodeInfo ni){
+  factory _ChartData.fromNodeInfo(NodeInfo lni, NodeInfo ni) {
     DateTime t = DateTime.parse(ni.Timestamp);
-    return _ChartData(timestamp:t, size:ni.Size);
+    var no =  (ni.TotalQuery - lni.TotalQuery == 0) ? 0 :  (ni.QueryFrom - lni.QueryFrom)/(ni.TotalQuery - lni.TotalQuery);
+
+    return _ChartData(timestamp: t, size: ni.Size, networkoverhead:no);
   }
 }
