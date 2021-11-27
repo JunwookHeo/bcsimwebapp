@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import "package:collection/collection.dart";
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:tree_view/tree_view.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'node.dart';
+import 'nodeview.dart';
 
 class MyHomePage extends StatefulWidget {
   final String title;
@@ -15,15 +18,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   final _channel = WebSocketChannel.connect(
     Uri.parse('ws://localhost:8080/nodes'),
   );
 
-  List<Node> _makeGUINodeList(Map<int, List<Node>> mapNodes){
+  List<Node> _makeGUINodeList(Map<int, List<Node>> mapNodes) {
     List<Node> nodes = [];
     for (var ns in mapNodes.values) {
-      nodes.add( Node(sc:ns[0].sc, isSC:true, childNodes: ns ));
+      nodes.add(Node(sc: ns[0].sc, isSC: true, childNodes: ns));
       // for (var n in ns) {
       //   nodes.add(n);
       // }
@@ -31,35 +33,23 @@ class _MyHomePageState extends State<MyHomePage> {
     return nodes;
   }
 
-  List<Widget> _genTreeItems(Map<int, List<Node>> mapNodes) {
-    List<Widget> listitems = [];
-    for (var ns in mapNodes.values) {
-      listitems.add(StorageClassWidget(sc:ns[0].sc));
-      for (var n in ns) {
-        listitems.add(NodeWidget(node:n));
-      }
-    }
-    return listitems;
-  }
-
-  List<Widget> _getChildList(List<Node> nodes) {
+  List<Widget> _genTreeItems(List<Node> nodes) {
     return nodes.map((node) {
       if (node.isSC) {
         return Container(
-          margin: EdgeInsets.only(left: 8),
+          margin: const EdgeInsets.only(left: 8),
           child: TreeViewChild(
-            parent: StorageClassWidget(sc:node.sc),
-            children: _getChildList(node.childNodes),
+            parent: StorageClassWidget(sc: node.sc),
+            children: _genTreeItems(node.childNodes),
           ),
         );
       }
       return Container(
         margin: const EdgeInsets.only(left: 4.0),
-        child: NodeWidget(node:node),
+        child: NodeWidget(node: node),
       );
     }).toList();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Row(children: <Widget>[
             const SizedBox(width: 10),
@@ -76,7 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ElevatedButton.icon(
                 label: const Text("Test Start"),
                 icon: const Icon(Icons.web),
-                onPressed: _sendMessage,
+                onPressed: _sendStart,
               ),
             ),
             const SizedBox(width: 20),
@@ -84,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ElevatedButton.icon(
                 label: const Text("Test Stop"),
                 icon: const Icon(Icons.web),
-                onPressed: _sendMessage,
+                onPressed: _sendStop,
               ),
             ),
             const SizedBox(width: 10),
@@ -104,28 +95,31 @@ class _MyHomePageState extends State<MyHomePage> {
                   for (var n in nodeMap.values) {
                     n.sort((a, b) => a.hash.compareTo(b.hash));
                   }
-                  List<Node> nodes_gui = _makeGUINodeList(nodeMap);
+                  List<Node> nodesGui = _makeGUINodeList(nodeMap);
 
                   return TreeView(
                     startExpanded: true,
-                    children: _getChildList(nodes_gui),
+                    children: _genTreeItems(nodesGui),
                   );
                 }
               },
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _sendMessage,
-        tooltip: 'Send message',
-        child: const Icon(Icons.send),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
-  void _sendMessage() {
-    _channel.sink.add(jsonEncode({"start": false}));
+  void _sendStart(){
+    _sendMessage(true);
+  }
+
+  void _sendStop(){
+    _sendMessage(false);
+  }
+
+  void _sendMessage(bool start) {
+    _channel.sink.add(jsonEncode({"start": start}));
   }
 }
 
@@ -133,7 +127,11 @@ class StorageClassWidget extends StatelessWidget {
   final int sc;
   final VoidCallback? onPressedNext;
 
-  const StorageClassWidget({Key? key, required this.sc, this.onPressedNext,}) : super(key: key);
+  const StorageClassWidget({
+    Key? key,
+    required this.sc,
+    this.onPressedNext,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +148,7 @@ class StorageClassWidget extends StatelessWidget {
         leading: folderIcon,
         title: titleWidget,
         trailing: expandButton,
-        onTap: (()=> print("Storage Class " + sc.toString())),
+        onTap: (() => print("Storage Class " + sc.toString())),
       ),
     );
   }
@@ -173,46 +171,22 @@ class NodeWidget extends StatelessWidget {
       elevation: 0.0,
       child: ListTile(
         leading: fileIcon,
-        title: nodeHashWidget,
-        subtitle: ipAddressWidget,
-        onTap: (()=> print(node.hash)),
+        title: ipAddressWidget,
+        subtitle: nodeHashWidget,
+        onTap: () {
+          print(ipAddressWidget);
+          final _addr = node.ip + ":" + node.port.toString();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => NodeViewPage(title: _addr)),
+          );
+        },
       ),
     );
   }
 }
 
-
 List<Node> parseNodes(String data) {
   final parsed = json.decode(data).cast<Map<String, dynamic>>();
   return parsed.map<Node>((json) => Node.fromJson(json)).toList();
-}
-
-class Node {
-  final String mode;
-  final int sc;
-  final String ip;
-  final int port;
-  final String hash;
-  final bool isSC;
-  final List<Node> childNodes;
-
-  Node(
-      {this.mode = "",
-      this.sc = 0,
-      this.ip = "",
-      this.port = 0,
-      this.hash = "",
-      this.isSC = false,
-      this.childNodes = const <Node>[],
-      });
-
-  factory Node.fromJson(Map<String, dynamic> json) {
-    return Node(
-      mode: json['mode'] as String,
-      sc: json['storage_class'] as int,
-      ip: json['ip'] as String,
-      port: json['port'] as int,
-      hash: json['hash'] as String,
-    );
-  }
 }
