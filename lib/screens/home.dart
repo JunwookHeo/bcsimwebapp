@@ -18,8 +18,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _channel = WebSocketChannel.connect(
+  final _ch_nodes = WebSocketChannel.connect(
     Uri.parse('ws://localhost:8080/nodes'),
+  );
+
+  final _ch_cmd = WebSocketChannel.connect(
+    Uri.parse('ws://localhost:8080/command'),
   );
 
   List<Node> _makeGUINodeList(Map<int, List<Node>> mapNodes) {
@@ -82,7 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ]),
           Flexible(
             child: StreamBuilder(
-              stream: _channel.stream,
+              stream: _ch_nodes.stream,
               //builder: (BuildContext context, AsyncSnapshot snapshot) {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
@@ -111,15 +115,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendStart() {
-    _sendMessage(true);
+    _sendMessage("Start");
   }
 
   void _sendStop() {
-    _sendMessage(false);
+    _sendMessage("Stop");
   }
 
-  void _sendMessage(bool start) {
-    _channel.sink.add(jsonEncode({"start": start}));
+  void _sendMessage(String arg1) {
+    String msg = jsonEncode(
+        {"cmd": "SET", "subcmd": "Test", "arg1": arg1, "arg2": "", "arg3": ""});
+
+    _ch_cmd.sink.add(msg);
   }
 }
 
