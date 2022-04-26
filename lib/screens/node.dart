@@ -26,4 +26,9 @@ class Node {
       hash: json['hash'] as String,
     );
   }
+
+  @override
+  String toString() {
+    return '{mode: $mode, SC: $sc, IP:$ip, Port:$port, Hash:$hash}';
+  }
 }
